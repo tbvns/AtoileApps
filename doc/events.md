@@ -1,4 +1,4 @@
-# Jellyfin Events Reference
+# Events Reference
 
 Events are scripts triggered by the app manager to control Jellyfin programmatically.  
 All account passwords are garbage values — authentication is handled exclusively via tokens through the reverse proxy.
