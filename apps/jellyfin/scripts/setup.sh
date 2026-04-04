@@ -1,0 +1,232 @@
+#!/bin/bash
+# =============================================================================
+# Jellyfin Setup Script — direct DB approach
+# Configures Jellyfin by writing config files and SQLite DB directly.
+# No API calls, no wizard, no fragile HTTP endpoints.
+#
+# ENV VARS (required):
+#   SERVER_NAME     — display name for the server
+#   BASE_URL        — base path, e.g. /jellyfin
+#   PROXY_IP        — IP of the reverse proxy to trust
+#   CONFIG_PATH     — path to Jellyfin config dir, e.g. /config/config
+#   DB_PATH         — path to jellyfin.db, e.g. /config/data/jellyfin.db
+# =============================================================================
+
+set -euo pipefail
+
+# ─── Dependencies ─────────────────────────────────────────────────────────────
+
+echo "[setup] Installing dependencies..."
+apt-get update -qq
+apt-get install -y -qq python3 sqlite3
+echo "[setup] Dependencies ready."
+
+# ─── Validation ───────────────────────────────────────────────────────────────
+
+required_vars=(SERVER_NAME BASE_URL PROXY_IP CONFIG_PATH DB_PATH)
+for var in "${required_vars[@]}"; do
+  if [[ -z "${!var:-}" ]]; then
+    echo "[ERROR] Missing required env var: $var"
+    exit 1
+  fi
+done
+
+if [[ ! -f "$DB_PATH" ]]; then
+  echo "[ERROR] Database not found at $DB_PATH — has Jellyfin started at least once?"
+  exit 1
+fi
+
+TOKEN_FILE="/config/data/.admin_token"
+ADMIN_USER="atoile_admin"
+
+echo "[setup] Starting Jellyfin direct setup..."
+
+# ─── 1. Write system.xml ──────────────────────────────────────────────────────
+
+echo "[setup] Writing system.xml..."
+cat > "$CONFIG_PATH/system.xml" <<EOF
+<?xml version="1.0" encoding="utf-8"?>
+<ServerConfiguration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <LogFileRetentionDays>3</LogFileRetentionDays>
+  <IsStartupWizardCompleted>true</IsStartupWizardCompleted>
+  <EnableMetrics>false</EnableMetrics>
+  <EnableNormalizedItemByNameIds>true</EnableNormalizedItemByNameIds>
+  <IsPortAuthorized>true</IsPortAuthorized>
+  <QuickConnectAvailable>false</QuickConnectAvailable>
+  <EnableCaseSensitiveItemIds>true</EnableCaseSensitiveItemIds>
+  <PreferredMetadataLanguage>en</PreferredMetadataLanguage>
+  <MetadataCountryCode>FR</MetadataCountryCode>
+  <ServerName>${SERVER_NAME}</ServerName>
+  <UICulture>en-US</UICulture>
+  <EnableLegacyAuthorization>true</EnableLegacyAuthorization>
+  <CorsHosts>
+    <string>*</string>
+  </CorsHosts>
+  <PluginRepositories>
+    <RepositoryInfo>
+      <n>Jellyfin Stable</n>
+      <Url>https://repo.jellyfin.org/files/plugin/manifest.json</Url>
+      <Enabled>true</Enabled>
+    </RepositoryInfo>
+  </PluginRepositories>
+  <ActivityLogRetentionDays>30</ActivityLogRetentionDays>
+</ServerConfiguration>
+EOF
+
+# ─── 2. Write network.xml ─────────────────────────────────────────────────────
+
+echo "[setup] Writing network.xml..."
+cat > "$CONFIG_PATH/network.xml" <<EOF
+<?xml version="1.0" encoding="utf-8"?>
+<NetworkConfiguration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <BaseUrl>${BASE_URL}</BaseUrl>
+  <EnableHttps>false</EnableHttps>
+  <RequireHttps>false</RequireHttps>
+  <InternalHttpPort>8096</InternalHttpPort>
+  <InternalHttpsPort>8920</InternalHttpsPort>
+  <PublicHttpPort>8096</PublicHttpPort>
+  <PublicHttpsPort>8920</PublicHttpsPort>
+  <AutoDiscovery>false</AutoDiscovery>
+  <EnableIPv4>true</EnableIPv4>
+  <EnableIPv6>false</EnableIPv6>
+  <EnableRemoteAccess>true</EnableRemoteAccess>
+  <KnownProxies>
+    <string>${PROXY_IP}</string>
+  </KnownProxies>
+  <IgnoreVirtualInterfaces>true</IgnoreVirtualInterfaces>
+  <VirtualInterfaceNames>
+    <string>veth</string>
+  </VirtualInterfaceNames>
+  <EnablePublishedServerUriByRequest>true</EnablePublishedServerUriByRequest>
+  <IsRemoteIPFilterBlacklist>false</IsRemoteIPFilterBlacklist>
+</NetworkConfiguration>
+EOF
+
+# ─── 3. Generate credentials ──────────────────────────────────────────────────
+
+echo "[setup] Generating credentials..."
+
+# Random UUID for the user
+USER_ID=$(python3 -c "import uuid; print(str(uuid.uuid4()).upper())")
+
+# Garbage password — random 64 char hex, never exposed or used directly
+GARBAGE_PASSWORD=$(python3 -c "import secrets; print(secrets.token_hex(32))")
+
+# PBKDF2-SHA512 hash in Jellyfin's exact format:
+# $PBKDF2-SHA512$iterations=210000$<HEX_SALT>$<HEX_HASH>
+PASSWORD_HASH=$(python3 - <<PYEOF
+import hashlib, secrets, binascii
+iterations = 210000
+salt = secrets.token_bytes(32)
+dk = hashlib.pbkdf2_hmac('sha512', "${GARBAGE_PASSWORD}".encode(), salt, iterations)
+salt_hex = binascii.hexlify(salt).decode().upper()
+dk_hex   = binascii.hexlify(dk).decode().upper()
+print(f"\$PBKDF2-SHA512\$iterations={iterations}\${salt_hex}\${dk_hex}")
+PYEOF
+)
+
+# 32-char hex token — matches Jellyfin's own token format
+ADMIN_TOKEN=$(python3 -c "import secrets; print(secrets.token_hex(16))")
+
+# Stable device ID for the setup device entry
+DEVICE_ID="atoile-setup-$(python3 -c 'import uuid; print(uuid.uuid4())')"
+
+NOW=$(date -u '+%Y-%m-%d %H:%M:%S.0000000')
+
+# ─── 4. Write to SQLite ───────────────────────────────────────────────────────
+
+echo "[setup] Writing admin user to database..."
+
+sqlite3 "$DB_PATH" <<SQL
+
+-- Admin user row
+INSERT INTO Users (
+  Id,
+  Username,
+  Password,
+  AuthenticationProviderId,
+  PasswordResetProviderId,
+  MustUpdatePassword,
+  InvalidLoginAttemptCount,
+  LoginAttemptsBeforeLockout,
+  MaxActiveSessions,
+  EnableAutoLogin,
+  EnableLocalPassword,
+  EnableNextEpisodeAutoPlay,
+  EnableUserPreferenceAccess,
+  DisplayCollectionsView,
+  DisplayMissingEpisodes,
+  HidePlayedInLatest,
+  RememberAudioSelections,
+  RememberSubtitleSelections,
+  PlayDefaultAudioTrack,
+  SubtitleMode,
+  SyncPlayAccess,
+  InternalId,
+  LastActivityDate,
+  LastLoginDate,
+  RowVersion
+) VALUES (
+  '${USER_ID}',
+  '${ADMIN_USER}',
+  '${PASSWORD_HASH}',
+  'Jellyfin.Server.Implementations.Users.DefaultAuthenticationProvider',
+  'Jellyfin.Server.Implementations.Users.DefaultPasswordResetProvider',
+  0, 0, NULL, 0, 0, 0, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0,
+  (SELECT COALESCE(MAX(InternalId), 0) + 1 FROM Users),
+  '${NOW}',
+  '${NOW}',
+  1
+);
+
+-- Required preference rows (Kind 0-3 must exist for every user)
+INSERT INTO Preferences (Kind, UserId, Value, RowVersion) VALUES (0, '${USER_ID}', '', 0);
+INSERT INTO Preferences (Kind, UserId, Value, RowVersion) VALUES (1, '${USER_ID}', '', 0);
+INSERT INTO Preferences (Kind, UserId, Value, RowVersion) VALUES (2, '${USER_ID}', '', 0);
+INSERT INTO Preferences (Kind, UserId, Value, RowVersion) VALUES (3, '${USER_ID}', '', 0);
+
+-- Grant admin permission (Kind=0 is IsAdministrator in Jellyfin's permission enum)
+INSERT OR IGNORE INTO Permissions (UserId, Kind, Value, RowVersion)
+VALUES ('${USER_ID}', 0, 1, 0);
+
+-- Admin token in Devices table
+INSERT INTO Devices (
+  UserId,
+  AccessToken,
+  AppName,
+  AppVersion,
+  DeviceName,
+  DeviceId,
+  IsActive,
+  DateCreated,
+  DateModified,
+  DateLastActivity
+) VALUES (
+  '${USER_ID}',
+  '${ADMIN_TOKEN}',
+  'Atoile',
+  '1.0.0',
+  'Atoile Setup',
+  '${DEVICE_ID}',
+  1,
+  '${NOW}',
+  '${NOW}',
+  '${NOW}'
+);
+
+SQL
+
+echo "[setup] User '${ADMIN_USER}' written to DB (ID: ${USER_ID})"
+
+# ─── 5. Store admin token ─────────────────────────────────────────────────────
+
+echo "$ADMIN_TOKEN" > "$TOKEN_FILE"
+chmod 600 "$TOKEN_FILE"
+
+echo "[setup] Admin token saved to $TOKEN_FILE"
+echo ""
+echo "  Admin user : $ADMIN_USER"
+echo "  User ID    : $USER_ID"
+echo "  Token file : $TOKEN_FILE"
+echo ""
+echo "[setup] Done. Restart Jellyfin to apply config changes."
