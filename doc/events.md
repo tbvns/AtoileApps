@@ -44,6 +44,19 @@ Re-enables a previously disabled account. Does not restore old tokens, a new tok
 
 ---
 
+## Storage Events
+
+### `storage_device_attached`
+
+Triggered when a new storage device is attached to the system. This event allows apps to react to new storage devices
+being mounted and potentially update their configuration to include new paths.
+
+| Arg    | Type   | Required |
+|--------|--------|----------|
+| `path` | string | ✅        |
+
+---
+
 ## Token Management Events
 
 ### `generate_token`
@@ -83,3 +96,4 @@ Atomically generates a new token and revokes the old one. This is the standard o
 |---|---|---|
 | `username` | string | ✅ |
 | `old_token` | secret | ✅ |
+
