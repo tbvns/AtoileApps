@@ -12,6 +12,12 @@
 #   DB_PATH         — path to jellyfin.db, e.g. /config/data/jellyfin.db
 # =============================================================================
 
+SERVER_NAME="Atoile Jellyfin"
+BASE_URL="http://jellyfin.local"
+PROXY_IP="http://localhost"
+CONFIG_PATH="/config/config"
+DB_PATH="/config/data/jellyfin.db"
+
 set -euo pipefail
 
 # ─── Dependencies ─────────────────────────────────────────────────────────────
@@ -20,16 +26,6 @@ echo "[setup] Installing dependencies..."
 apt-get update -qq
 apt-get install -y -qq python3 sqlite3
 echo "[setup] Dependencies ready."
-
-# ─── Validation ───────────────────────────────────────────────────────────────
-
-required_vars=(SERVER_NAME BASE_URL PROXY_IP CONFIG_PATH DB_PATH)
-for var in "${required_vars[@]}"; do
-  if [[ -z "${!var:-}" ]]; then
-    echo "[ERROR] Missing required env var: $var"
-    exit 1
-  fi
-done
 
 if [[ ! -f "$DB_PATH" ]]; then
   echo "[ERROR] Database not found at $DB_PATH — has Jellyfin started at least once?"
