@@ -16,5 +16,9 @@
       "type": "script/sh",
       "src": "/scripts/setup.sh"
     }
+  },
+  "storage": {
+    "target": "all",
+    "paths": ["/"]
   }
 }
