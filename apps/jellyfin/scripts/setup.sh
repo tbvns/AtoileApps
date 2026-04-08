@@ -130,11 +130,26 @@ DEVICE_ID="atoile-setup-$(python3 -c 'import uuid; print(uuid.uuid4())')"
 NOW=$(date -u '+%Y-%m-%d %H:%M:%S.0000000')
 
 # ─── 4. Write to SQLite ───────────────────────────────────────────────────────
-
 echo "[setup] Writing admin user to database..."
 
+# Only proceed if user doesn't exist yet
 sqlite3 "$DB_PATH" <<SQL
+.mode column
+.header off
 
+-- Check if user already exists
+SELECT COUNT(*) FROM Users WHERE Username = '${ADMIN_USER}';
+
+SQL
+
+RESULT=$(sqlite3 "$DB_PATH" "SELECT COUNT(*) FROM Users WHERE Username = '${ADMIN_USER}';")
+
+if [ "$RESULT" -gt 0 ]; then
+  echo "[WARNING] User '${ADMIN_USER}' already exists in DB — skipping creation."
+else
+  echo "[setup] Creating new admin user '${ADMIN_USER}'..."
+
+  sqlite3 "$DB_PATH" <<SQL
 -- Admin user row
 INSERT INTO Users (
   Id,
@@ -209,10 +224,10 @@ INSERT INTO Devices (
   '${NOW}',
   '${NOW}'
 );
-
 SQL
 
-echo "[setup] User '${ADMIN_USER}' written to DB (ID: ${USER_ID})"
+  echo "[setup] User '${ADMIN_USER}' written to DB (ID: ${USER_ID})"
+fi
 
 # ─── 5. Store admin token ─────────────────────────────────────────────────────
 
