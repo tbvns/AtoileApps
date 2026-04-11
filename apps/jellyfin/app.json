@@ -22,7 +22,7 @@
       "type": "script/sh",
       "src": "/scripts/login.sh",
       "trigger_type": "match/url",
-      "trigger_src": "*/login"
+      "trigger_src": "*/login*"
     }
   },
   "storage": {
