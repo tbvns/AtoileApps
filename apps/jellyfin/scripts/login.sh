@@ -15,9 +15,8 @@
 #
 # ARGS:
 #   $1              — username
-#   $2              — password
-#   $3              — device name (optional, defaults to "API Login")
-#   $4              — app name   (optional, defaults to "Atoile")
+#   $2              — device name (optional, defaults to "API Login")
+#   $3              — app name   (optional, defaults to "Atoile")
 #
 # Auto-resolved (no env var needed):
 #   SERVER_ID       — read from /config/data/device.txt
@@ -31,10 +30,8 @@ DEVICE_TXT="/config/data/device.txt"
 SYSTEM_XML="${CONFIG_PATH}/system.xml"
 
 USERNAME="${1:-}"
-# $2 (password) is read via PASSWORD env or positional; keep consistent with original
-PASSWORD="${PASSWORD:-${2:-}}"
-DEVICE_NAME="${3:-API Login}"
-APP_NAME="${4:-Atoile}"
+DEVICE_NAME="${2:-API Login}"
+APP_NAME="${3:-Atoile}"
 
 set -euo pipefail
 
@@ -43,8 +40,8 @@ if [[ -z "${SERVER_ADDRESS:-}" ]]; then
   exit 1
 fi
 
-if [[ -z "$USERNAME" ]] || [[ -z "$PASSWORD" ]]; then
-  echo "[ERROR] Usage: $0 <username> <password> [device_name] [app_name]"
+if [[ -z "$USERNAME" ]]; then
+  echo "[ERROR] Usage: $0 <username> [device_name] [app_name]"
   exit 1
 fi
 
