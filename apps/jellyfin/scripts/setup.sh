@@ -15,7 +15,7 @@
 # =============================================================================
 
 SERVER_NAME="Atoile Jellyfin"
-BASE_URL="http://jellyfin.local"
+BASE_URL="http://jellyfin.localhost:8080"
 PROXY_IP="http://localhost"
 CONFIG_PATH="/config/config"
 DB_PATH="/config/data/jellyfin.db"
