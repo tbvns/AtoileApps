@@ -92,6 +92,7 @@ if [[ -z "$USER_DATA" ]]; then
 fi
 
 USER_ID=$(echo "$USER_DATA" | cut -d'|' -f1)
+PARSED_USER_ID=$(python3 -c "print(\"${USER_ID}\".lower().replace('-', ''))")
 echo "[login] User found: $USER_ID"
 
 ADMIN_TOKEN=$(python3 -c "import secrets; print(secrets.token_hex(16))")
@@ -146,8 +147,7 @@ creds = {
         "Id":                 "${SERVER_ID}",
         "LocalAddress":       "${SERVER_ADDRESS}",
         "AccessToken":        "${ADMIN_TOKEN}",
-        "UserId":             "${USER_ID}",
-        "AtoileManaged":      "true",
+        "UserId":             "${PARSED_USER_ID}",
     }]
 }
 
@@ -160,14 +160,18 @@ script = (
     "(function(){{"
     "try{{"
     "localStorage.setItem('jellyfin_credentials','{payload}');"
+    "localStorage.setItem('_deviceId2','{deviceId2}');"
     "console.log('[jellyfin-login] credentials written for user {user}, token {token}...');"
+    "window.location = 'http://jellyfin.local/web/#/home';"
     "}}catch(e){{console.error('[jellyfin-login] localStorage write failed',e);}}"
     "}})();"
+
     "</script>"
 ).format(
     payload=payload,
-    user="${USER_ID}",
+    user="${PARSED_USER_ID}",
     token="${ADMIN_TOKEN}"[:8],
+    deviceId2="${DEVICE_ID}"
 )
 
 print(script)
