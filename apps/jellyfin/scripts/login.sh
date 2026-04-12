@@ -56,7 +56,7 @@ if [[ ! -f "$DEVICE_TXT" ]]; then
   echo "[ERROR] device.txt not found at $DEVICE_TXT"
   exit 1
 fi
-SERVER_ID=$(tr -d '[:space:]' < "$DEVICE_TXT")
+SERVER_ID=$(sed 's/^\xef\xbb\xbf//' "$DEVICE_TXT" | tr -d '[:space:]')
 
 if [[ ! -f "$SYSTEM_XML" ]]; then
   echo "[ERROR] system.xml not found at $SYSTEM_XML"
