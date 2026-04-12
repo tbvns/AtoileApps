@@ -13,6 +13,6 @@ services:
     restart: 'unless-stopped'
     # Optional - alternative address used for autodiscovery
     environment:
-      - JELLYFIN_PublishedServerUrl=%proxied_url% # E.G http://atoile.local/jellyfin/
+      - JELLYFIN_PublishedServerUrl=jellyfin.local
     extra_hosts:
       - 'host.docker.internal:host-gateway'
