@@ -30,7 +30,7 @@ DEVICE_TXT="/config/data/device.txt"
 SYSTEM_XML="${CONFIG_PATH}/system.xml"
 
 USERNAME="${1:-}"
-DEVICE_NAME="${2:-API Login}"
+DEVICE_NAME="${2:-Atoile Login}"
 APP_NAME="${3:-Atoile}"
 
 set -euo pipefail
@@ -119,10 +119,10 @@ INSERT INTO Devices (
   '${USER_ID}',
   '${ADMIN_TOKEN}',
   '${APP_NAME}',
-  '1.0.0',
+  '10.11.7',
   '${DEVICE_NAME}',
   '${DEVICE_ID}',
-  1,
+  0,
   '${NOW}',
   '${NOW}',
   '${NOW}'
@@ -147,6 +147,7 @@ creds = {
         "LocalAddress":       "${SERVER_ADDRESS}",
         "AccessToken":        "${ADMIN_TOKEN}",
         "UserId":             "${USER_ID}",
+        "AtoileManaged":      "true",
     }]
 }
 

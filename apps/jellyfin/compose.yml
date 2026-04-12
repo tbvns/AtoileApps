@@ -12,7 +12,7 @@ services:
       # %storage_volumes%
     restart: 'unless-stopped'
     # Optional - alternative address used for autodiscovery
-    environment:
-      - JELLYFIN_PublishedServerUrl=jellyfin.local
+    # environment:
+    #  - JELLYFIN_PublishedServerUrl=jellyfin.local
     extra_hosts:
       - 'host.docker.internal:host-gateway'
