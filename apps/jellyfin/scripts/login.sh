@@ -123,7 +123,7 @@ INSERT INTO Devices (
   '10.11.7',
   '${DEVICE_NAME}',
   '${DEVICE_ID}',
-  0,
+  1,
   '${NOW}',
   '${NOW}',
   '${NOW}'
