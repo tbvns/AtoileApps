@@ -22,7 +22,8 @@
       "type": "script/sh",
       "src": "/scripts/login.sh",
       "trigger_type": "match/url",
-      "trigger_src": ".*\\/web\\/"
+      "trigger_src": ".*\\/web\\/",
+      "require_restart": "true"
     }
   },
   "storage": {
