@@ -15,6 +15,7 @@
 # =============================================================================
 
 SERVER_NAME="Atoile Jellyfin"
+BASE_URL="http://jellyfin.local"
 PROXY_IP="http://localhost"
 CONFIG_PATH="/config/config"
 DB_PATH="/config/data/jellyfin.db"
@@ -76,6 +77,7 @@ echo "[setup] Writing network.xml..."
 cat > "$CONFIG_PATH/network.xml" <<EOF
 <?xml version="1.0" encoding="utf-8"?>
 <NetworkConfiguration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <BaseUrl>${BASE_URL}</BaseUrl>
   <EnableHttps>false</EnableHttps>
   <RequireHttps>false</RequireHttps>
   <InternalHttpPort>8096</InternalHttpPort>
