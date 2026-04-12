@@ -10,7 +10,7 @@
   "website": "https://jellyfin.org",
   "docker_image": "jellyfin/jellyfin",
   "version": "10.11.7",
-  "sub_domain": "jellyfin",
+  "domain": "jellyfin",
   "events": {
     "setup": {
       "label": "Setup Jellyfin",
