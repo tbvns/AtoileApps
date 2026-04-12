@@ -150,10 +150,6 @@ creds = {
     }]
 }
 
-echo "[DEBUG] ADMIN_TOKEN=$ADMIN_TOKEN"
-echo "[DEBUG] USER_ID=$USER_ID"
-echo "[DEBUG] SERVER_ADDRESS=$SERVER_ADDRESS"
-
 payload = json.dumps(creds, separators=(',', ':'))
 # Escape </script> sequences that could break the inline script context
 payload = payload.replace('</', r'<\/')
