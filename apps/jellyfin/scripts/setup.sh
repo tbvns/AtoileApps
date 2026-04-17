@@ -104,7 +104,7 @@ cat > "$CONFIG_PATH/network.xml" <<EOF
 </NetworkConfiguration>
 EOF
 
-# ─── 3. Create users from KeyEntity JSON ──────────────────────────────────────
+# ─── 3. Create users from KeyEntity JSON (with admin permissions) ─────────────
 
 echo "[setup] Processing users from 'users' env var..."
 
@@ -155,6 +155,7 @@ for entry in entries:
     cur.execute("SELECT COALESCE(MAX(InternalId), 0) + 1 FROM Users")
     internal_id = cur.fetchone()[0]
 
+    # Insert user
     cur.execute("""
         INSERT INTO Users (
             Id, Username, Password,
@@ -182,12 +183,17 @@ for entry in entries:
             (kind, user_id)
         )
 
+    cur.execute(
+        "INSERT OR IGNORE INTO Permissions (UserId, Kind, Value, RowVersion) VALUES (?, 0, 1, 0)",
+        (user_id,)
+    )
+
     con.commit()
-    print(f"[setup] Created user '{username}' (ID: {user_id})")
+    print(f"[setup] Created admin user '{username}' (ID: {user_id})")
     created += 1
 
 con.close()
-print(f"[setup] Done — {created} user(s) created, {skipped} skipped.")
+print(f"[setup] Done — {created} user(s) created (admin perms granted), {skipped} skipped.")
 PYEOF
 
 # ─── 4. Summary ───────────────────────────────────────────────────────────────
