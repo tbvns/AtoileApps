@@ -12,6 +12,8 @@
 #   PROXY_IP        — IP of the reverse proxy to trust
 #   CONFIG_PATH     — path to Jellyfin config dir, e.g. /config/config
 #   DB_PATH         — path to jellyfin.db, e.g. /config/data/jellyfin.db
+#   users           — JSON array of KeyEntity objects from Atoile
+#                     [{"appId":"...","user":{"username":"..."},"key":"..."},...]
 # =============================================================================
 
 SERVER_NAME="Atoile Jellyfin"
@@ -26,7 +28,7 @@ set -euo pipefail
 
 echo "[setup] Installing dependencies..."
 apt-get update -qq
-apt-get install -y -qq python3 sqlite3
+apt-get install -y -qq python3
 echo "[setup] Dependencies ready."
 
 if [[ ! -f "$DB_PATH" ]]; then
@@ -34,8 +36,10 @@ if [[ ! -f "$DB_PATH" ]]; then
   exit 1
 fi
 
-TOKEN_FILE="/config/data/.admin_token"
-ADMIN_USER="atoile_admin"
+if [[ -z "${users:-}" ]]; then
+  echo "[ERROR] 'users' env var is not set or empty."
+  exit 1
+fi
 
 echo "[setup] Starting Jellyfin direct setup..."
 
@@ -100,146 +104,93 @@ cat > "$CONFIG_PATH/network.xml" <<EOF
 </NetworkConfiguration>
 EOF
 
-# ─── 3. Generate credentials ──────────────────────────────────────────────────
+# ─── 3. Create users from KeyEntity JSON ──────────────────────────────────────
 
-echo "[setup] Generating credentials..."
+echo "[setup] Processing users from 'users' env var..."
 
-# Random UUID for the user
-USER_ID=$(python3 -c "import uuid; print(str(uuid.uuid4()).upper())")
+python3 - <<PYEOF
+import json, os, hashlib, binascii, secrets, uuid, sqlite3, sys
+from datetime import datetime, timezone
 
-# Garbage password — random 64 char hex, never exposed or used directly
-GARBAGE_PASSWORD=$(python3 -c "import secrets; print(secrets.token_hex(32))")
+db_path = os.environ["DB_PATH"]
+users_json = os.environ["users"]
+now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S.0000000")
 
-# PBKDF2-SHA512 hash in Jellyfin's exact format:
-# $PBKDF2-SHA512$iterations=210000$<HEX_SALT>$<HEX_HASH>
-PASSWORD_HASH=$(python3 - <<PYEOF
-import hashlib, secrets, binascii
-iterations = 210000
-salt = secrets.token_bytes(32)
-dk = hashlib.pbkdf2_hmac('sha512', "${GARBAGE_PASSWORD}".encode(), salt, iterations)
-salt_hex = binascii.hexlify(salt).decode().upper()
-dk_hex   = binascii.hexlify(dk).decode().upper()
-print(f"\$PBKDF2-SHA512\$iterations={iterations}\${salt_hex}\${dk_hex}")
+try:
+    entries = json.loads(users_json)
+except json.JSONDecodeError as e:
+    print(f"[ERROR] Failed to parse 'users' env var as JSON: {e}", file=sys.stderr)
+    sys.exit(1)
+
+def pbkdf2_hash(key: str) -> str:
+    """Hash key in Jellyfin's PBKDF2-SHA512 format."""
+    iterations = 210000
+    salt = secrets.token_bytes(32)
+    dk = hashlib.pbkdf2_hmac("sha512", key.encode(), salt, iterations)
+    salt_hex = binascii.hexlify(salt).decode().upper()
+    dk_hex   = binascii.hexlify(dk).decode().upper()
+    return f"\$PBKDF2-SHA512\$iterations={iterations}\${salt_hex}\${dk_hex}"
+
+con = sqlite3.connect(db_path)
+cur = con.cursor()
+
+created = 0
+skipped = 0
+
+for entry in entries:
+    username = entry["user"]["username"]
+    key      = entry["key"]
+
+    # Skip if already exists
+    cur.execute("SELECT COUNT(*) FROM Users WHERE Username = ?", (username,))
+    if cur.fetchone()[0] > 0:
+        print(f"[WARNING] User '{username}' already exists — skipping.")
+        skipped += 1
+        continue
+
+    user_id       = str(uuid.uuid4()).upper()
+    password_hash = pbkdf2_hash(key)
+    device_id     = f"atoile-setup-{uuid.uuid4()}"
+
+    cur.execute("SELECT COALESCE(MAX(InternalId), 0) + 1 FROM Users")
+    internal_id = cur.fetchone()[0]
+
+    cur.execute("""
+        INSERT INTO Users (
+            Id, Username, Password,
+            AuthenticationProviderId, PasswordResetProviderId,
+            MustUpdatePassword, InvalidLoginAttemptCount, LoginAttemptsBeforeLockout,
+            MaxActiveSessions, EnableAutoLogin, EnableLocalPassword,
+            EnableNextEpisodeAutoPlay, EnableUserPreferenceAccess,
+            DisplayCollectionsView, DisplayMissingEpisodes, HidePlayedInLatest,
+            RememberAudioSelections, RememberSubtitleSelections,
+            PlayDefaultAudioTrack, SubtitleMode, SyncPlayAccess,
+            InternalId, LastActivityDate, LastLoginDate, RowVersion
+        ) VALUES (
+            ?, ?, ?,
+            'Jellyfin.Server.Implementations.Users.DefaultAuthenticationProvider',
+            'Jellyfin.Server.Implementations.Users.DefaultPasswordResetProvider',
+            0, 0, NULL, 0, 0, 0, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0,
+            ?, ?, ?, 1
+        )
+    """, (user_id, username, password_hash, internal_id, now, now))
+
+    # Required preference rows (Kind 0-3 must exist for every user)
+    for kind in range(4):
+        cur.execute(
+            "INSERT INTO Preferences (Kind, UserId, Value, RowVersion) VALUES (?, ?, '', 0)",
+            (kind, user_id)
+        )
+
+    con.commit()
+    print(f"[setup] Created user '{username}' (ID: {user_id})")
+    created += 1
+
+con.close()
+print(f"[setup] Done — {created} user(s) created, {skipped} skipped.")
 PYEOF
-)
 
-# 32-char hex token — matches Jellyfin's own token format
-ADMIN_TOKEN=$(python3 -c "import secrets; print(secrets.token_hex(16))")
+# ─── 4. Summary ───────────────────────────────────────────────────────────────
 
-# Stable device ID for the setup device entry
-DEVICE_ID="atoile-setup-$(python3 -c 'import uuid; print(uuid.uuid4())')"
-
-NOW=$(date -u '+%Y-%m-%d %H:%M:%S.0000000')
-
-# ─── 4. Write to SQLite ───────────────────────────────────────────────────────
-echo "[setup] Writing admin user to database..."
-
-# Only proceed if user doesn't exist yet
-sqlite3 "$DB_PATH" <<SQL
-.mode column
-.header off
-
--- Check if user already exists
-SELECT COUNT(*) FROM Users WHERE Username = '${ADMIN_USER}';
-
-SQL
-
-RESULT=$(sqlite3 "$DB_PATH" "SELECT COUNT(*) FROM Users WHERE Username = '${ADMIN_USER}';")
-
-if [ "$RESULT" -gt 0 ]; then
-  echo "[WARNING] User '${ADMIN_USER}' already exists in DB — skipping creation."
-else
-  echo "[setup] Creating new admin user '${ADMIN_USER}'..."
-
-  sqlite3 "$DB_PATH" <<SQL
--- Admin user row
-INSERT INTO Users (
-  Id,
-  Username,
-  Password,
-  AuthenticationProviderId,
-  PasswordResetProviderId,
-  MustUpdatePassword,
-  InvalidLoginAttemptCount,
-  LoginAttemptsBeforeLockout,
-  MaxActiveSessions,
-  EnableAutoLogin,
-  EnableLocalPassword,
-  EnableNextEpisodeAutoPlay,
-  EnableUserPreferenceAccess,
-  DisplayCollectionsView,
-  DisplayMissingEpisodes,
-  HidePlayedInLatest,
-  RememberAudioSelections,
-  RememberSubtitleSelections,
-  PlayDefaultAudioTrack,
-  SubtitleMode,
-  SyncPlayAccess,
-  InternalId,
-  LastActivityDate,
-  LastLoginDate,
-  RowVersion
-) VALUES (
-  '${USER_ID}',
-  '${ADMIN_USER}',
-  '${PASSWORD_HASH}',
-  'Jellyfin.Server.Implementations.Users.DefaultAuthenticationProvider',
-  'Jellyfin.Server.Implementations.Users.DefaultPasswordResetProvider',
-  0, 0, NULL, 0, 0, 0, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0,
-  (SELECT COALESCE(MAX(InternalId), 0) + 1 FROM Users),
-  '${NOW}',
-  '${NOW}',
-  1
-);
-
--- Required preference rows (Kind 0-3 must exist for every user)
-INSERT INTO Preferences (Kind, UserId, Value, RowVersion) VALUES (0, '${USER_ID}', '', 0);
-INSERT INTO Preferences (Kind, UserId, Value, RowVersion) VALUES (1, '${USER_ID}', '', 0);
-INSERT INTO Preferences (Kind, UserId, Value, RowVersion) VALUES (2, '${USER_ID}', '', 0);
-INSERT INTO Preferences (Kind, UserId, Value, RowVersion) VALUES (3, '${USER_ID}', '', 0);
-
--- Grant admin permission (Kind=0 is IsAdministrator in Jellyfin's permission enum)
-INSERT OR IGNORE INTO Permissions (UserId, Kind, Value, RowVersion)
-VALUES ('${USER_ID}', 0, 1, 0);
-
--- Admin token in Devices table
-INSERT INTO Devices (
-  UserId,
-  AccessToken,
-  AppName,
-  AppVersion,
-  DeviceName,
-  DeviceId,
-  IsActive,
-  DateCreated,
-  DateModified,
-  DateLastActivity
-) VALUES (
-  '${USER_ID}',
-  '${ADMIN_TOKEN}',
-  'Atoile',
-  '1.0.0',
-  'Atoile Setup',
-  '${DEVICE_ID}',
-  1,
-  '${NOW}',
-  '${NOW}',
-  '${NOW}'
-);
-SQL
-
-  echo "[setup] User '${ADMIN_USER}' written to DB (ID: ${USER_ID})"
-fi
-
-# ─── 5. Store admin token ─────────────────────────────────────────────────────
-
-echo "$ADMIN_TOKEN" > "$TOKEN_FILE"
-chmod 600 "$TOKEN_FILE"
-
-echo "[setup] Admin token saved to $TOKEN_FILE"
 echo ""
-echo "  Admin user : $ADMIN_USER"
-echo "  User ID    : $USER_ID"
-echo "  Token file : $TOKEN_FILE"
-echo ""
-echo "[setup] Done. Restart Jellyfin to apply config changes."
+echo "[setup] All done. Restart Jellyfin to apply config changes."
