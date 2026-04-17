@@ -20,7 +20,7 @@ SERVER_NAME="Atoile Jellyfin"
 BASE_URL="http://jellyfin.local"
 PROXY_IP="http://localhost"
 CONFIG_PATH="/config/config"
-DB_PATH="/config/data/jellyfin.db"
+export DB_PATH="/config/data/jellyfin.db"
 
 set -euo pipefail
 
