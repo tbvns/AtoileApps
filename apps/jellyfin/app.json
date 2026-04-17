@@ -22,7 +22,8 @@
       "type": "script/sh",
       "src": "/scripts/login.sh",
       "trigger_type": "match/url",
-      "trigger_src": ".*\\/web\\/",
+      "trigger_src": ".*\\/Users\\/authenticatebyname",
+      "result_type": "injection/json",
       "require_restart": "true"
     }
   },
