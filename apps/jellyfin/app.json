@@ -19,8 +19,8 @@
     },
     "login": {
       "label": "Log a user into Jellyfin",
-      "type": "script/sh",
-      "src": "/scripts/login.sh",
+      "type": "script/js",
+      "src": "/scripts/login.js",
       "trigger_type": "match/url",
       "trigger_src": ".*\\/Users\\/authenticatebyname",
       "result_type": "injection/client/json"
