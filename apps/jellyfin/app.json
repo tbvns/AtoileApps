@@ -23,8 +23,7 @@
       "src": "/scripts/login.sh",
       "trigger_type": "match/url",
       "trigger_src": ".*\\/Users\\/authenticatebyname",
-      "result_type": "injection/client/json",
-      "require_restart": "true"
+      "result_type": "injection/client/json"
     }
   },
   "storage": {
