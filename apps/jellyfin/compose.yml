@@ -3,7 +3,7 @@ services:
     image: %image%:%version%
     container_name: atoile-app_jellyfin
     ports:
-      - 8096:8096/tcp
+      - 8095:8096/tcp
       - 7359:7359/udp
     volumes:
       - /atoile/apps/jellyfin/config:/config
