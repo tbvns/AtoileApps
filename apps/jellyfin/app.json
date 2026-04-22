@@ -34,7 +34,7 @@
           "windows": "https://nightly.link/jellyfin/jellyfin-desktop/workflows/build-windows/main/windows-arm64.zip",
           "mac": "https://nightly.link/jellyfin/jellyfin-desktop/workflows/build-macos/main/macos-arm64.zip"
         },
-        "x64": {
+        "amd64": {
           "windows": "https://nightly.link/jellyfin/jellyfin-desktop/workflows/build-windows/main/windows-x64.zip",
           "mac": "https://nightly.link/jellyfin/jellyfin-desktop/workflows/build-macos/main/macos-x86_64.zip"
         },
@@ -67,7 +67,7 @@
           "arm64": {
             "mac": "https://github.com/jeffvli/feishin/releases/download/v1.11.0/Feishin-1.11.0-mac-arm64.dmg"
           },
-          "x64": {
+          "amd64": {
             "mac": "https://github.com/jeffvli/feishin/releases/download/v1.11.0/Feishin-1.11.0-mac-x64.dmg"
           }
         }
