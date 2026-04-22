@@ -31,9 +31,7 @@
     "official": {
       "desktop": {
         "arm64": {
-          "windows": "https://nightly.link/jellyfin/jellyfin-desktop/workflows/build-windows/main/windows-arm64.zip"
-        },
-        "silicon": {
+          "windows": "https://nightly.link/jellyfin/jellyfin-desktop/workflows/build-windows/main/windows-arm64.zip",
           "mac": "https://nightly.link/jellyfin/jellyfin-desktop/workflows/build-macos/main/macos-arm64.zip"
         },
         "x64": {
