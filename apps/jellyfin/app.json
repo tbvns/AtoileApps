@@ -1,6 +1,7 @@
 {
   "name": "Jellyfin",
   "desc": "A simple media server",
+  "desc_long": "Jellyfin is a free, open-source media server that lets you stream your personal movies, TV shows, music, and photos to all your devices. Own your content with no subscriptions, ads, or tracking - just self-hosted entertainment on your terms.",
   "alternatives": ["youtube", "netflix", "apple tv", "amazon prime video", "prime video", "zee5", "sonyliv", "bilibili",
     "peacock", "iflix", "mango tv", "vidio", "mgm+", "disney+", "hulu", "jiohotstar", "hbo max", "discovery+", "youku",
     "paramount+", "skyshowtime", "bet+", "tencent video", "deezer", "spotify", "apple music", "qq music", "youTube music",
