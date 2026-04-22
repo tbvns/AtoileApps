@@ -39,7 +39,9 @@
           "mac": "https://nightly.link/jellyfin/jellyfin-desktop/workflows/build-macos/main/macos-x86_64.zip"
         },
         "all": {
-          "linux": "https://nightly.link/jellyfin/jellyfin-desktop/workflows/build-linux-appimage/main/linux-appimage-x86_64.zip"
+          "linux": "https://nightly.link/jellyfin/jellyfin-desktop/workflows/build-linux-appimage/main/linux-appimage-x86_64.zip",
+          "android": "https://f-droid.org/packages/org.jellyfin.mobile/",
+          "ios": "https://apps.apple.com/fr/app/jellyfin-mobile/id1480192618"
         }
       }
     },
