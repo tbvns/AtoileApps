@@ -27,6 +27,28 @@
       "result_type": "injection/client/json"
     }
   },
+  "apps": {
+    "official": {
+      "web": "http://jellyfin.local/web/",
+      "windows (x64)": "https://nightly.link/jellyfin/jellyfin-desktop/workflows/build-windows/main/windows-x64.zip",
+      "windows (arm64)": "https://nightly.link/jellyfin/jellyfin-desktop/workflows/build-windows/main/windows-arm64.zip",
+      "mac (silicon)": "https://nightly.link/jellyfin/jellyfin-desktop/workflows/build-macos/main/macos-arm64.zip",
+      "mac (intel)": "https://nightly.link/jellyfin/jellyfin-desktop/workflows/build-macos/main/macos-x86_64.zip",
+      "linux": "https://nightly.link/jellyfin/jellyfin-desktop/workflows/build-linux-appimage/main/linux-appimage-x86_64.zip"
+    },
+    "third_party": {
+      "Finamp (Audio)": {
+        "android": "https://f-droid.org/packages/com.unicornsonlsd.finamp/",
+        "ios": "https://apps.apple.com/us/app/finamp/id1574922594"
+      },
+      "Feishin (Audio)": {
+        "windows": "https://github.com/jeffvli/feishin/releases/latest",
+        "mac": "https://github.com/jeffvli/feishin/releases/latest",
+        "linux": "https://github.com/jeffvli/feishin/releases/latest"
+      }
+    },
+    "more": "https://jellyfin.org/downloads/clients/all"
+  },
   "storage": {
     "target": "all",
     "paths": ["/"]
