@@ -29,22 +29,48 @@
   },
   "apps": {
     "official": {
-      "web": "http://jellyfin.local/web/",
-      "windows (x64)": "https://nightly.link/jellyfin/jellyfin-desktop/workflows/build-windows/main/windows-x64.zip",
-      "windows (arm64)": "https://nightly.link/jellyfin/jellyfin-desktop/workflows/build-windows/main/windows-arm64.zip",
-      "mac (silicon)": "https://nightly.link/jellyfin/jellyfin-desktop/workflows/build-macos/main/macos-arm64.zip",
-      "mac (intel)": "https://nightly.link/jellyfin/jellyfin-desktop/workflows/build-macos/main/macos-x86_64.zip",
-      "linux": "https://nightly.link/jellyfin/jellyfin-desktop/workflows/build-linux-appimage/main/linux-appimage-x86_64.zip"
+      "desktop": {
+        "arm64": {
+          "windows": "https://nightly.link/jellyfin/jellyfin-desktop/workflows/build-windows/main/windows-arm64.zip"
+        },
+        "silicon": {
+          "mac": "https://nightly.link/jellyfin/jellyfin-desktop/workflows/build-macos/main/macos-arm64.zip"
+        },
+        "x64": {
+          "windows": "https://nightly.link/jellyfin/jellyfin-desktop/workflows/build-windows/main/windows-x64.zip",
+          "mac": "https://nightly.link/jellyfin/jellyfin-desktop/workflows/build-macos/main/macos-x86_64.zip"
+        },
+        "all": {
+          "linux": "https://nightly.link/jellyfin/jellyfin-desktop/workflows/build-linux-appimage/main/linux-appimage-x86_64.zip"
+        }
+      }
     },
     "third_party": {
       "Finamp (Audio)": {
-        "android": "https://f-droid.org/packages/com.unicornsonlsd.finamp/",
-        "ios": "https://apps.apple.com/us/app/finamp/id1574922594"
+        "fdroid": {
+          "all": {
+            "android": "https://f-droid.org/packages/com.unicornsonlsd.finamp/"
+          }
+        },
+        "ios_app_store": {
+          "all": {
+            "ios": "https://apps.apple.com/us/app/finamp/id1574922594"
+          }
+        }
       },
       "Feishin (Audio)": {
-        "windows": "https://github.com/jeffvli/feishin/releases/latest",
-        "mac": "https://github.com/jeffvli/feishin/releases/latest",
-        "linux": "https://github.com/jeffvli/feishin/releases/latest"
+        "desktop": {
+          "all": {
+            "windows": "https://github.com/jeffvli/feishin/releases/download/v1.11.0/Feishin-1.11.0-win.exe",
+            "linux": "https://flathub.org/en/apps/org.jeffvli.feishin"
+          },
+          "arm64": {
+            "mac": "https://github.com/jeffvli/feishin/releases/download/v1.11.0/Feishin-1.11.0-mac-arm64.dmg"
+          },
+          "x64": {
+            "mac": "https://github.com/jeffvli/feishin/releases/download/v1.11.0/Feishin-1.11.0-mac-x64.dmg"
+          }
+        }
       }
     },
     "more": "https://jellyfin.org/downloads/clients/all"
