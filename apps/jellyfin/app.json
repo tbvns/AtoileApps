@@ -1,8 +1,22 @@
 {
   "name": "Jellyfin",
   "desc": "A simple media server",
-  "desc_long": "zefzefzef" +
-               "ergfergerg",
+  "desc_long": [
+    "## Jellyfin - Your Personal Media Server",
+    "",
+    "Take control of your entertainment. Jellyfin is a free, open-source media server that transforms your personal",
+    "collection of movies, TV shows, music, and photos into a beautiful, Netflix-like experience across all your devices.",
+    "",
+    "### Key Features",
+    "",
+    "- **No subscriptions, no ads, no tracking** - complete privacy and control",
+    "- **Stream anywhere** - watch on phones, tablets, computers, smart TVs, and more",
+    "- **Self-hosted** - runs on your own hardware, fully under your control",
+    "- **Smart organization** - automatic metadata, artwork, ratings, and watch history",
+    "- **Share with family** - invite others with customizable permissions",
+    "",
+    "Free and open-source. Works on Windows, Mac, Linux, and NAS devices. Your content, your rules."
+  ],
   "alternatives": ["youtube", "netflix", "apple tv", "amazon prime video", "prime video", "zee5", "sonyliv", "bilibili",
     "peacock", "iflix", "mango tv", "vidio", "mgm+", "disney+", "hulu", "jiohotstar", "hbo max", "discovery+", "youku",
     "paramount+", "skyshowtime", "bet+", "tencent video", "deezer", "spotify", "apple music", "qq music", "youTube music",
