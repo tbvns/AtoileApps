@@ -29,6 +29,18 @@
       "type": "script/sh",
       "src": "/scripts/setup.sh"
     },
+    "create_account": {
+      "label": "Create a jellyfin account",
+      "type": "script/sh",
+      "trigger_type": "account/created",
+      "src": "/scripts/create_account.sh"
+    },
+    "delete_account": {
+      "label": "Delete a jellyfin account",
+      "type": "script/sh",
+      "trigger_type": "account/deleted",
+      "src": "/scripts/create_account.sh"
+    },
     "login": {
       "label": "Log a user into Jellyfin",
       "type": "script/js",
